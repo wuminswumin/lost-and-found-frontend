@@ -4,8 +4,7 @@ import AppNav from '@/components/AppNav.vue'
 
 <template>
   <div class="page">
-    <AppNav />
-    <h1>校园失物招领系统</h1>
-    <p>这里是首页</p>
+    <h1>首页</h1>
+    <p>欢迎来到校园失物招领系统</p>
   </div>
 </template>

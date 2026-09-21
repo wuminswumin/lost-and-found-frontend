@@ -4,8 +4,6 @@ import AppNav from '@/components/AppNav.vue'
 
 <template>
   <div class="page">
-    <AppNav />
-
     <h1>登录</h1>
     <p>这里是登录页面</p>
   </div>
