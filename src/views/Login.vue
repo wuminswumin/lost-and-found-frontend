@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
 
 const username = ref('')
 const password = ref('')
+
+const userStore = useUserStore()
 
 const handleLogin = () => {
   if (!username.value || !password.value) {
