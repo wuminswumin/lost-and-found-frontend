@@ -3,8 +3,7 @@
 
 <template>
   <div class="app">
-    <h1>失物招领</h1>
-    <p>前端骨架已就绪，可以开始开发了</p>
+    <router-view />
   </div>
 </template>
 
