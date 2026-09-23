@@ -1,29 +1,45 @@
-import { createRouter, createWebHistory } from 'vue-router'
-
-import Home from '@/views/Home.vue'
-import Login from '@/views/Login.vue'
-import Register from '@/views/Register.vue'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import { loadLogin } from '@/utils/auth-storage'
 
 const router = createRouter({
-  history: createWebHistory(),
-
+  history: createWebHashHistory(),
   routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: Home,
-    },
     {
       path: '/login',
       name: 'login',
-      component: Login,
+      component: () => import('@/views/LoginView.vue'),
+      meta: { title: '登录' },
     },
     {
-      path: '/register',
-      name: 'register',
-      component: Register,
+      path: '/',
+      name: 'home',
+      component: () => import('@/views/HomeView.vue'),
+      meta: { title: '首页' },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const isLoggedIn = !!loadLogin()?.token
+
+  if (!isLoggedIn && to.name !== 'login') {
+    return { name: 'login' }
+  }
+
+  if (isLoggedIn && to.name === 'login') {
+    return { name: 'home' }
+  }
+})
+
+router.afterEach((to) => {
+  document.title =
+    typeof to.meta.title === 'string'
+      ? `${to.meta.title} - 失物招领系统`
+      : '?'
 })
 
 export default router

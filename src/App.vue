@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import AppNav from '@/components/AppNav.vue'
+import { useRoute } from 'vue-router'
+import NavBar from '@/components/待定.vue'
+
+const route = useRoute()
 </script>
 
 <template>
   <div class="app">
     <header class="app-header">
       <h1>校园失物招领系统</h1>
-      <AppNav />
+      <NavBar v-if="route.name !== 'login'" />
     </header>
 
     <main class="app-main">
-      <router-view />
+      <RouterView />
     </main>
   </div>
 </template>
