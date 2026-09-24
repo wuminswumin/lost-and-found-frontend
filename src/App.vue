@@ -7,7 +7,11 @@ const route = useRoute()
 
 <template>
   <div class="app">
-    <NavBar v-if="route.name !== 'login'" />
+    <header class="app-header">
+      <h1>校园失物招领系统</h1>
+      <NavBar v-if="route.name !== 'login'" />
+    </header>
+
     <main class="app-main">
       <RouterView />
     </main>
@@ -15,7 +19,23 @@ const route = useRoute()
 </template>
 
 <style scoped>
+.app {
+  min-height: 100vh;
+}
+
+.app-header {
+  padding: 20px 20px 10px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.app-header h1 {
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
 .app-main {
-  padding: 24px 16px 48px;
+  padding: 40px 20px;
+  text-align: center;
 }
 </style>

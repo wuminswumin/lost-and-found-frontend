@@ -12,8 +12,9 @@ export interface LoginData {
   token: string
   expired_at: string
   user_id: number
-  username:string
-  role:Role
+  username: string
+  phone_num: string
+  role: Role
 }
 
 export interface ApiEnvelope<T = unknown> {

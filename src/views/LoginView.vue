@@ -13,30 +13,48 @@ const auth = useAuthStore()
 
 // ===== 登录表单 =====
 const loginFormRef = ref<FormInstance>()
-const loginForm = reactive({ username: '', password: '' })
+const loginForm = reactive({ phone_num: '', password: '' })
 
 // 校验规则：required = 必填。这些只是"前台礼貌提醒"，
 // 真正的硬性校验在后端（比如密码 8~16 位），后端说了算
 const loginRules: FormRules<typeof loginForm> = {
-  username: [{ required: true, message: '请输入学号', trigger: 'blur' }],
+  phone_num: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
 // ===== 注册表单 =====
 const registerFormRef = ref<FormInstance>()
-const registerForm = reactive({ username: '', name: '', password: '', role: 'student' as Role })
-
+const registerForm = reactive({
+  username: '',
+  phone_num: '',
+  password: '',
+  role: '普通用户' as Role,
+  invite_code: null as string | null,
+})
 const registerRules: FormRules<typeof registerForm> = {
   username: [
     { required: true, message: '请输入学号', trigger: 'blur' },
     { pattern: /^\d{1,32}$/, message: '学号必须是 1~32 位纯数字', trigger: 'blur' },
   ],
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  phone_num: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 8, max: 16, message: '密码长度 8~16 位', trigger: 'blur' },
   ],
   role: [{ required: true, message: '请选择身份', trigger: 'change' }],
+  invite_code: [
+    {
+      validator: (_rule, value, callback) => {
+        if (registerForm.role !== '普通用户' && !value) {
+          callback(new Error('管理员注册请输入邀请码'))
+          return
+        }
+
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 const activeTab = ref<'login' | 'register'>('login')
@@ -51,9 +69,12 @@ async function handleLogin() {
 
   loggingIn.value = true
   try {
-    const data = await apiLogin({ username: loginForm.username, password: loginForm.password })
+    const data = await apiLogin({
+      phone_num: loginForm.phone_num,
+      password: loginForm.password,
+    })
     auth.setLogin(data)
-    ElMessage.success(`欢迎回来，${data.user.name}！`)
+    ElMessage.success(`欢迎回来，${data.username}！`)
     router.push('/')
   } catch {
     // 失败提示已由 http.ts 统一弹出，这里不用重复写
@@ -71,7 +92,7 @@ async function handleRegister() {
   try {
     await apiRegister({ ...registerForm })
     ElMessage.success('注册成功，请登录')
-    loginForm.username = registerForm.username
+    loginForm.phone_num = registerForm.phone_num
     registerForm.password = ''
     activeTab.value = 'login'
   } catch {
@@ -92,8 +113,8 @@ async function handleRegister() {
         <!-- ===== 登录页签 ===== -->
         <el-tab-pane label="登录" name="login">
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-position="top" @submit.prevent>
-            <el-form-item label="学号" prop="username">
-              <el-input v-model="loginForm.username" placeholder="请输入学号" :prefix-icon="User" maxlength="32" />
+            <el-form-item label="手机号" prop="phone_num">
+              <el-input v-model="loginForm.phone_num" placeholder="请输入手机号" :prefix-icon="User" />
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input
@@ -124,8 +145,11 @@ async function handleRegister() {
             <el-form-item label="学号" prop="username">
               <el-input v-model="registerForm.username" placeholder="1~32 位纯数字" :prefix-icon="User" maxlength="32" />
             </el-form-item>
-            <el-form-item label="姓名" prop="name">
-              <el-input v-model="registerForm.name" placeholder="请输入姓名" :prefix-icon="Postcard" maxlength="32" />
+            <el-form-item label="手机号" prop="phone_num">
+              <el-input
+                v-model="registerForm.phone_num"
+                placeholder="请输入手机号"
+              />
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input
@@ -138,9 +162,22 @@ async function handleRegister() {
             </el-form-item>
             <el-form-item label="身份" prop="role">
               <el-radio-group v-model="registerForm.role">
-                <el-radio value="student">学生</el-radio>
-                <el-radio value="admin">管理员</el-radio>
+                <el-radio value="普通用户">普通用户</el-radio>
+                <el-radio value="失物招领管理员">失物招领管理员</el-radio>
+                <el-radio value="系统管理员">系统管理员</el-radio>
               </el-radio-group>
+            </el-form-item>
+            <el-form-item
+              v-if="registerForm.role !== '普通用户'"
+              label="邀请码"
+              prop="invite_code"
+            >
+              <el-input
+                v-model="registerForm.invite_code"
+                type="password"
+                show-password
+                placeholder="请输入管理员邀请码"
+              />
             </el-form-item>
             <el-button type="primary" class="submit-btn" :loading="registering" @click="handleRegister">
               注 册

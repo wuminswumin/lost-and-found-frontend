@@ -1,8 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { loadLogin } from '@/utils/auth-storage'
 
-
- const router = createRouter({
+const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
@@ -17,20 +16,30 @@ import { loadLogin } from '@/utils/auth-storage'
       component: () => import('@/views/HomeView.vue'),
       meta: { title: '首页' },
     },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
+    },
   ],
 })
 
-
-
 router.beforeEach((to) => {
   const isLoggedIn = !!loadLogin()?.token
-  if (!isLoggedIn && to.name !== 'login') return { name: 'login' }    // 没登录还想进登录页以外的页面，拦回登录页
-  if (isLoggedIn && to.name === 'login') return { name: 'home' }      // 已登录还去登录页，送回首页
+
+  if (!isLoggedIn && to.name !== 'login') {
+    return { name: 'login' }
+  }
+
+  if (isLoggedIn && to.name === 'login') {
+    return { name: 'home' }
+  }
 })
 
 router.afterEach((to) => {
-  document.title = typeof to.meta.title === 'string' ? `${to.meta.title} - 失物招领系统` : '?'
+  document.title =
+    typeof to.meta.title === 'string'
+      ? `${to.meta.title} - 失物招领系统`
+      : '?'
 })
 
 export default router
