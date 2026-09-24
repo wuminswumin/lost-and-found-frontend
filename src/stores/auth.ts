@@ -7,7 +7,6 @@ export const useAuthStore = defineStore('auth', {
     token: loadLogin()?.token ?? '',
     username: loadLogin()?.user ?? '',
     userId: null as number | null,
-    phoneNum: '',
     role: '',
     expiredAt: '',
   }),
@@ -21,7 +20,6 @@ export const useAuthStore = defineStore('auth', {
       this.token = data.token
       this.userId = data.user_id
       this.username = data.username
-      this.phoneNum = data.phone_num
       this.role = data.role
       this.expiredAt = data.expired_at
 
@@ -32,7 +30,6 @@ export const useAuthStore = defineStore('auth', {
       this.token = ''
       this.userId = null
       this.username = ''
-      this.phoneNum = ''
       this.role = ''
       this.expiredAt = ''
 

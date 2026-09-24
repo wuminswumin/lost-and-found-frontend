@@ -13,7 +13,6 @@ export interface LoginData {
   expired_at: string
   user_id: number
   username: string
-  phone_num: string
   role: Role
 }
 
