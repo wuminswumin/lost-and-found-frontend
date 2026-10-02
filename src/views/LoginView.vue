@@ -135,13 +135,6 @@ async function handleRegister() {
         <!-- ===== 注册页签 ===== -->
         <el-tab-pane label="注册" name="register">
           <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-position="top" @submit.prevent>
-            <el-alert
-              class="register-tip"
-              type="info"
-              :closable="false"
-              show-icon
-              title="管理员注册仅限预留学号（20240001 ~ 20240003），其他学号请选「学生」"
-            />
             <el-form-item label="学号" prop="username">
               <el-input v-model="registerForm.username" placeholder="1~32 位纯数字" :prefix-icon="User" maxlength="32" />
             </el-form-item>
