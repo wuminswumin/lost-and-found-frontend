@@ -28,9 +28,16 @@ const router = createRouter({
       component: () => import('@/views/LostView.vue'),
       meta: { title: '寻找失物' },
     },
-    { path: '/found',
+    {
+      path: '/found',
       name: 'found',
       component: () => import('@/views/FoundView.vue'),
+      meta: { title: '招领信息' },
+    },
+    {
+      path: '/found/publish',
+      name: 'found-publish',
+      component: () => import('@/views/FoundPublishView.vue'),
       meta: { title: '发布招领' },
     },
     { path: '/post',

@@ -33,3 +33,18 @@ export interface ApiEnvelope<T = unknown> {
   message: string 
   data: T
 }
+
+export interface Post {
+  post_id: number
+  user_id: number
+  post_type: '寻物' | '招领'
+  title: string
+  event_location: string
+  event_time: string
+  contact: string
+  description: string
+  image_url: string
+  status: string
+  created_at: string
+  updated_at: string
+}

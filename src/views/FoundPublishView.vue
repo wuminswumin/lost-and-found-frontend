@@ -1,10 +1,10 @@
 <template>
-  <div class="lost-page">
-    <el-card class="lost-card">
+  <div class="found-publish-page">
+    <el-card class="found-publish-card">
       <template #header>
         <div class="card-header">
-          <h2>发表失物信息</h2>
-          <span>填写你丢失物品的信息</span>
+          <h2>发表招领信息</h2>
+          <span>填写你捡到物品的信息</span>
         </div>
       </template>
 
@@ -13,7 +13,7 @@
         :model="form"
         :rules="rules"
         label-width="100px"
-        class="lost-form"
+        class="found-publish-form"
       >
         <el-form-item label="物品名称" prop="title">
           <el-input
@@ -24,18 +24,18 @@
           />
         </el-form-item>
 
-        <el-form-item label="丢失地点" prop="event_location">
+        <el-form-item label="捡到地点" prop="event_location">
           <el-input
             v-model="form.event_location"
             placeholder="例如：图书馆三楼"
           />
         </el-form-item>
 
-        <el-form-item label="丢失时间" prop="event_time">
+        <el-form-item label="捡到时间" prop="event_time">
           <el-date-picker
             v-model="form.event_time"
             type="datetime"
-            placeholder="请选择丢失时间"
+            placeholder="请选择捡到时间"
             format="YYYY-MM-DD HH:mm"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
@@ -45,7 +45,7 @@
         <el-form-item label="联系方式" prop="contact">
           <el-input
             v-model="form.contact"
-            placeholder="请输入方便联系你的手机号"
+            placeholder="请输入方便失主联系你的方式"
           />
         </el-form-item>
 
@@ -69,6 +69,7 @@
             :on-exceed="handleExceed"
           >
             <el-button type="primary">选择图片</el-button>
+
             <template #tip>
               <div class="upload-tip">
                 支持 JPG、JPEG、PNG，图片大小不超过 5MB
@@ -83,7 +84,7 @@
             :loading="submitting"
             @click="submitForm"
           >
-            发布失物信息
+            发布招领信息
           </el-button>
 
           <el-button @click="resetForm">
@@ -108,7 +109,7 @@ import {
 import { createPost } from '@/api/post'
 import { request } from '@/api/http'
 
-interface LostForm {
+interface FoundPublishForm {
   title: string
   event_location: string
   event_time: string
@@ -119,7 +120,7 @@ interface LostForm {
 
 const formRef = ref<FormInstance>()
 
-const form = reactive<LostForm>({
+const form = reactive<FoundPublishForm>({
   title: '',
   event_location: '',
   event_time: '',
@@ -130,7 +131,7 @@ const form = reactive<LostForm>({
 
 const submitting = ref(false)
 
-const rules: FormRules<LostForm> = {
+const rules: FormRules<FoundPublishForm> = {
   title: [
     {
       required: true,
@@ -141,14 +142,14 @@ const rules: FormRules<LostForm> = {
   event_location: [
     {
       required: true,
-      message: '请输入丢失地点',
+      message: '请输入捡到地点',
       trigger: 'blur',
     },
   ],
   event_time: [
     {
       required: true,
-      message: '请选择丢失时间',
+      message: '请选择捡到时间',
       trigger: 'change',
     },
   ],
@@ -173,6 +174,7 @@ const uploadImage = async (options: UploadRequestOptions) => {
 
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
     ElMessage.error('只支持 JPG、JPEG、PNG 格式的图片')
+
     options.onError?.({
       name: 'UploadError',
       status: 400,
@@ -180,11 +182,13 @@ const uploadImage = async (options: UploadRequestOptions) => {
       url: '/api/upload',
       message: '图片格式不正确',
     })
+
     return
   }
 
   if (file.size > 5 * 1024 * 1024) {
     ElMessage.error('图片大小不能超过 5MB')
+
     options.onError?.({
       name: 'UploadError',
       status: 400,
@@ -192,6 +196,7 @@ const uploadImage = async (options: UploadRequestOptions) => {
       url: '/api/upload',
       message: '图片过大',
     })
+
     return
   }
 
@@ -238,7 +243,7 @@ const submitForm = async () => {
     submitting.value = true
 
     await createPost({
-      post_type: '寻物',
+      post_type: '招领',
       title: form.title,
       event_location: form.event_location,
       event_time: form.event_time,
@@ -247,11 +252,11 @@ const submitForm = async () => {
       image_url: form.image_url,
     })
 
-    ElMessage.success('失物信息发布成功，等待管理员审核')
+    ElMessage.success('招领信息发布成功，等待管理员审核')
 
     resetForm()
   } catch (error) {
-    console.error('发布失物信息失败：', error)
+    console.error('发布招领信息失败：', error)
   } finally {
     submitting.value = false
   }
@@ -264,13 +269,13 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.lost-page {
+.found-publish-page {
   max-width: 900px;
   margin: 30px auto;
   padding: 0 20px;
 }
 
-.lost-card {
+.found-publish-card {
   width: 100%;
 }
 
@@ -289,7 +294,7 @@ const resetForm = () => {
   font-size: 14px;
 }
 
-.lost-form {
+.found-publish-form {
   max-width: 700px;
 }
 
