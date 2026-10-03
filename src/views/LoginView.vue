@@ -33,8 +33,8 @@ const registerForm = reactive({
 })
 const registerRules: FormRules<typeof registerForm> = {
   username: [
-    { required: true, message: '请输入学号', trigger: 'blur' },
-    { pattern: /^\d{1,32}$/, message: '学号必须是 1~32 位纯数字', trigger: 'blur' },
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 15, message: '用户名长度 3~15 位', trigger: 'blur' },
   ],
   phone_num: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
   password: [
@@ -83,7 +83,7 @@ async function handleLogin() {
   }
 }
 
-/** 注册：成功后自动把学号填进登录框，并切到登录页签（体贴一步） */
+/** 注册：成功后自动把手机号填进登录框，并切到登录页签（体贴一步） */
 async function handleRegister() {
   const ok = await registerFormRef.value?.validate().catch(() => false)
   if (!ok) return
@@ -135,8 +135,8 @@ async function handleRegister() {
         <!-- ===== 注册页签 ===== -->
         <el-tab-pane label="注册" name="register">
           <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-position="top" @submit.prevent>
-            <el-form-item label="学号" prop="username">
-              <el-input v-model="registerForm.username" placeholder="1~32 位纯数字" :prefix-icon="User" maxlength="32" />
+            <el-form-item label="用户名" prop="username">
+              <el-input v-model="registerForm.username" placeholder="3~15 位" :prefix-icon="User" maxlength="15" />
             </el-form-item>
             <el-form-item label="手机号" prop="phone_num">
               <el-input

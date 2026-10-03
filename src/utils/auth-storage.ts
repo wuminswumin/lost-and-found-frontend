@@ -9,6 +9,12 @@ export function saveLoginData(data: LoginData): void {
 }
 
 
+// 用户改完用户名后单独更新 localStorage 里的名字（token 不动）
+export function saveUsername(username: string): void {
+  localStorage.setItem(USER_KEY, username)
+}
+
+
 export function loadLogin(): { token: string; user: string } | null {
   const token = localStorage.getItem(TOKEN_KEY)
   if (!token) return null

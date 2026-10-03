@@ -16,6 +16,18 @@ export interface LoginData {
   role: Role
 }
 
+// 修改个人信息时提交的数据（Apifox: PATCH /api/user/profile）
+export interface UpdateProfilePayload {
+  username: string
+  phone_num: string
+}
+
+// 修改密码时提交的数据（Apifox: PATCH /api/user/password）
+export interface UpdatePasswordPayload {
+  old_password: string
+  new_password: string
+}
+
 export interface ApiEnvelope<T = unknown> {
   code: number 
   message: string 
