@@ -2,9 +2,7 @@
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Goods,
   List,
-  Search,
   Setting,
   SwitchButton,
   User,
@@ -15,12 +13,11 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-// 五个功能入口：按钮文字、跳转地址、图标
+// 四个功能入口：按钮文字、跳转地址、图标
 const entries = [
   { path: '/account', label: '管理个人账号', icon: User },
-  { path: '/lost', label: '发表失物信息', icon: Search },
-  { path: '/found', label: '发表招领报告', icon: Goods },
-  { path: '/post', label: '查看帖子', icon: List },
+  { path: '/post/publish', label: '发布帖子', icon: List },
+  { path: '/posts', label: '查看帖子', icon: List },
   { path: '/admin', label: '管理员操作', icon: Setting },
 ]
 
@@ -98,7 +95,7 @@ async function handleLogout() {
   font-size: 13px;
 }
 
-/* 三列按钮网格：6 个按钮正好排成 2 行 */
+/* 三列按钮网格 */
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

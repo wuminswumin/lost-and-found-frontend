@@ -1,10 +1,10 @@
 <template>
-  <div class="lost-page">
-    <el-card class="lost-card">
+  <div class="post-publish-page">
+    <el-card class="post-card">
       <template #header>
         <div class="card-header">
-          <h2>发表失物信息</h2>
-          <span>填写你丢失物品的信息</span>
+          <h2>发布帖子</h2>
+          <span>填写失物或招领信息</span>
         </div>
       </template>
 
@@ -13,8 +13,25 @@
         :model="form"
         :rules="rules"
         label-width="100px"
-        class="lost-form"
+        class="post-form"
       >
+        <el-form-item label="帖子类型" prop="post_type">
+          <el-select
+            v-model="form.post_type"
+            placeholder="请选择帖子类型"
+            style="width: 100%"
+          >
+            <el-option
+              label="寻物"
+              value="寻物"
+            />
+            <el-option
+              label="招领"
+              value="招领"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="物品名称" prop="title">
           <el-input
             v-model="form.title"
@@ -24,18 +41,22 @@
           />
         </el-form-item>
 
-        <el-form-item label="丢失地点" prop="event_location">
+        <el-form-item label="地点" prop="event_location">
           <el-input
             v-model="form.event_location"
-            placeholder="例如：图书馆三楼"
+            :placeholder="
+              form.post_type === '寻物'
+                ? '例如：图书馆三楼'
+                : '例如：图书馆三楼'
+            "
           />
         </el-form-item>
 
-        <el-form-item label="丢失时间" prop="event_time">
+        <el-form-item label="时间" prop="event_time">
           <el-date-picker
             v-model="form.event_time"
             type="datetime"
-            placeholder="请选择丢失时间"
+            placeholder="请选择时间"
             format="YYYY-MM-DD HH:mm"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
@@ -69,6 +90,7 @@
             :on-exceed="handleExceed"
           >
             <el-button type="primary">选择图片</el-button>
+
             <template #tip>
               <div class="upload-tip">
                 支持 JPG、JPEG、PNG，图片大小不超过 5MB
@@ -83,7 +105,7 @@
             :loading="submitting"
             @click="submitForm"
           >
-            发布失物信息
+            发布帖子
           </el-button>
 
           <el-button @click="resetForm">
@@ -108,7 +130,8 @@ import {
 import { createPost } from '@/api/post'
 import { request } from '@/api/http'
 
-interface LostForm {
+interface PostForm {
+  post_type: '寻物' | '招领'
   title: string
   event_location: string
   event_time: string
@@ -119,7 +142,8 @@ interface LostForm {
 
 const formRef = ref<FormInstance>()
 
-const form = reactive<LostForm>({
+const form = reactive<PostForm>({
+  post_type: '寻物',
   title: '',
   event_location: '',
   event_time: '',
@@ -130,7 +154,14 @@ const form = reactive<LostForm>({
 
 const submitting = ref(false)
 
-const rules: FormRules<LostForm> = {
+const rules: FormRules<PostForm> = {
+  post_type: [
+    {
+      required: true,
+      message: '请选择帖子类型',
+      trigger: 'change',
+    },
+  ],
   title: [
     {
       required: true,
@@ -141,14 +172,14 @@ const rules: FormRules<LostForm> = {
   event_location: [
     {
       required: true,
-      message: '请输入丢失地点',
+      message: '请输入地点',
       trigger: 'blur',
     },
   ],
   event_time: [
     {
       required: true,
-      message: '请选择丢失时间',
+      message: '请选择时间',
       trigger: 'change',
     },
   ],
@@ -173,6 +204,7 @@ const uploadImage = async (options: UploadRequestOptions) => {
 
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
     ElMessage.error('只支持 JPG、JPEG、PNG 格式的图片')
+
     options.onError?.({
       name: 'UploadError',
       status: 400,
@@ -180,11 +212,13 @@ const uploadImage = async (options: UploadRequestOptions) => {
       url: '/api/upload',
       message: '图片格式不正确',
     })
+
     return
   }
 
   if (file.size > 5 * 1024 * 1024) {
     ElMessage.error('图片大小不能超过 5MB')
+
     options.onError?.({
       name: 'UploadError',
       status: 400,
@@ -192,6 +226,7 @@ const uploadImage = async (options: UploadRequestOptions) => {
       url: '/api/upload',
       message: '图片过大',
     })
+
     return
   }
 
@@ -218,7 +253,8 @@ const uploadImage = async (options: UploadRequestOptions) => {
       status: 500,
       method: 'POST',
       url: '/api/upload',
-      message: error instanceof Error ? error.message : '图片上传失败',
+      message:
+        error instanceof Error ? error.message : '图片上传失败',
     })
   }
 }
@@ -238,7 +274,7 @@ const submitForm = async () => {
     submitting.value = true
 
     await createPost({
-      post_type: '寻物',
+      post_type: form.post_type,
       title: form.title,
       event_location: form.event_location,
       event_time: form.event_time,
@@ -247,11 +283,11 @@ const submitForm = async () => {
       image_url: form.image_url,
     })
 
-    ElMessage.success('失物信息发布成功，等待管理员审核')
+    ElMessage.success('帖子发布成功，等待管理员审核')
 
     resetForm()
   } catch (error) {
-    console.error('发布失物信息失败：', error)
+    console.error('发布帖子失败：', error)
   } finally {
     submitting.value = false
   }
@@ -259,18 +295,19 @@ const submitForm = async () => {
 
 const resetForm = () => {
   formRef.value?.resetFields()
+  form.post_type = '寻物'
   form.image_url = ''
 }
 </script>
 
 <style scoped>
-.lost-page {
+.post-publish-page {
   max-width: 900px;
   margin: 30px auto;
   padding: 0 20px;
 }
 
-.lost-card {
+.post-card {
   width: 100%;
 }
 
@@ -289,7 +326,7 @@ const resetForm = () => {
   font-size: 14px;
 }
 
-.lost-form {
+.post-form {
   max-width: 700px;
 }
 
@@ -299,3 +336,4 @@ const resetForm = () => {
   margin-top: 5px;
 }
 </style>
+

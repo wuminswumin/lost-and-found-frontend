@@ -1,9 +1,8 @@
 <template>
   <nav class="nav-bar">
     <RouterLink to="/">首页</RouterLink>
-    <RouterLink to="/found">招领</RouterLink>
-    <RouterLink to="/lost">失物</RouterLink>
-    <RouterLink to="/my-posts">我的帖子</RouterLink>
+    <RouterLink to="/posts">查看帖子</RouterLink>
+    <RouterLink to="/account">管理个人账号</RouterLink>
   </nav>
 </template>
 
