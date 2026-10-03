@@ -35,6 +35,12 @@ const router = createRouter({
       meta: { title: '招领信息' },
     },
     {
+      path: '/my-posts',
+      name: 'my-posts',
+      component: () => import('@/views/MyPostsView.vue'),
+      meta: { title: '我的帖子' },
+    },
+    {
       path: '/found/publish',
       name: 'found-publish',
       component: () => import('@/views/FoundPublishView.vue'),

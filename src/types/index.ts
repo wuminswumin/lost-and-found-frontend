@@ -44,6 +44,7 @@ export interface Post {
   contact: string
   description: string
   image_url: string
+  is_resolve: '已解决' | '未解决'
   status: string
   created_at: string
   updated_at: string

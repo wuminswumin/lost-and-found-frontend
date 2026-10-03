@@ -4,7 +4,7 @@ import type { Post } from '@/types'
 export interface PostListParams {
   page?: number
   post_type?: '寻物' | '招领'
-  status?: string
+  is_resolve?: '已解决' | '未解决'
 }
 
 // 查询所有公开帖子
