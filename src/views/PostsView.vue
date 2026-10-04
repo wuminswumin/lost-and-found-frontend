@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getAllPosts, getMyPosts } from '@/api/post'
 import type { Post } from '@/types'
@@ -16,6 +17,20 @@ const locationKeyword = ref('')
 const currentPage = ref(1)
 const pageSize = 15
 const total = ref(0)
+const router = useRouter()
+
+function saveListState() {
+  sessionStorage.setItem(
+    'posts_list_state',
+    JSON.stringify({
+      postType: postType.value,
+      postScope: postScope.value,
+      keyword: keyword.value,
+      locationKeyword: locationKeyword.value,
+      currentPage: currentPage.value,
+    }),
+  )
+}
 
 async function loadPosts() {
   loading.value = true
@@ -67,6 +82,17 @@ function handleFilterChange() {
   loadPosts()
 }
 
+function viewPost(post: Post) {
+  saveListState()
+
+  sessionStorage.setItem(
+    `post_${post.post_id}`,
+    JSON.stringify(post),
+  )
+
+  router.push(`/post?post_id=${post.post_id}`)
+}
+
 const filteredPosts = () => {
   return posts.value.filter((post) => {
     const matchKeyword =
@@ -84,7 +110,30 @@ const filteredPosts = () => {
   })
 }
 
+watch(
+  [postType, postScope, keyword, locationKeyword, currentPage],
+  () => {
+    saveListState()
+  },
+)
+
 onMounted(() => {
+  const savedState = sessionStorage.getItem('posts_list_state')
+
+  if (savedState) {
+    try {
+      const state = JSON.parse(savedState)
+
+      postType.value = state.postType ?? '全部'
+      postScope.value = state.postScope ?? '全部帖子'
+      keyword.value = state.keyword ?? ''
+      locationKeyword.value = state.locationKeyword ?? ''
+      currentPage.value = state.currentPage ?? 1
+    } catch {
+      sessionStorage.removeItem('posts_list_state')
+    }
+  }
+
   loadPosts()
 })
 </script>
@@ -216,7 +265,7 @@ onMounted(() => {
 
           <el-button
             size="small"
-            @click="$router.push(`/post?post_id=${post.post_id}`)"
+            @click="viewPost(post)"
           >
             查看详情
           </el-button>

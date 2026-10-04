@@ -66,8 +66,6 @@ export function getPostDetails(post_id: number) {
   return request<Post>({
     method: 'GET',
     url: '/api/post-details',
-    data: {
-      post_id,
-    },
+    data: JSON.stringify({ post_id }),
   })
 }
