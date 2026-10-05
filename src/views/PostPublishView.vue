@@ -36,7 +36,7 @@
           <el-input
             v-model="form.title"
             placeholder="例如：黑色 iPhone 15"
-            maxlength="100"
+            maxlength="20"
             show-word-limit
           />
         </el-form-item>
@@ -49,6 +49,8 @@
                 ? '例如：图书馆三楼'
                 : '例如：图书馆三楼'
             "
+            maxlength="20"
+            show-word-limit
           />
         </el-form-item>
 
@@ -67,6 +69,8 @@
           <el-input
             v-model="form.contact"
             placeholder="请输入方便联系你的手机号"
+            maxlength="20"
+            show-word-limit
           />
         </el-form-item>
 
@@ -76,7 +80,7 @@
             type="textarea"
             :rows="5"
             placeholder="请描述物品的颜色、型号、特征等信息"
-            maxlength="500"
+            maxlength="150"
             show-word-limit
           />
         </el-form-item>
@@ -119,6 +123,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ElMessage,
   type FormInstance,
@@ -141,6 +146,7 @@ interface PostForm {
 }
 
 const formRef = ref<FormInstance>()
+const router = useRouter()
 
 const form = reactive<PostForm>({
   post_type: '寻物',
@@ -285,7 +291,7 @@ const submitForm = async () => {
 
     ElMessage.success('帖子发布成功，等待管理员审核')
 
-    resetForm()
+    router.push('/posts')
   } catch (error) {
     console.error('发布帖子失败：', error)
   } finally {

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getPostDetails } from '@/api/post'
 import type { Post } from '@/types'
 
 const route = useRoute()
@@ -10,7 +11,7 @@ const router = useRouter()
 const post = ref<Post | null>(null)
 const loading = ref(false)
 
-function loadPostDetails() {
+async function loadPostDetails() {
   const postId = Number(route.query.post_id)
 
   if (!postId) {
@@ -19,19 +20,19 @@ function loadPostDetails() {
     return
   }
 
-  const savedPost = sessionStorage.getItem(`post_${postId}`)
-
-  if (!savedPost) {
-    ElMessage.error('帖子信息不存在')
-    return
-  }
+  loading.value = true
 
   try {
-    post.value = JSON.parse(savedPost) as Post
-  } catch {
-    ElMessage.error('帖子信息读取失败')
+    const result = await getPostDetails(postId)
+    post.value = result
+  } catch (error) {
+    console.error('获取帖子详情失败:', error)
+    ElMessage.error('获取帖子详情失败')
+  } finally {
+    loading.value = false
   }
 }
+
 
 function goBack() {
   router.back()
