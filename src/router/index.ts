@@ -1,5 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { loadLogin } from '@/utils/auth-storage'
+import type { Role } from '@/types'
+
+// 扩展路由 meta 类型：给管理员页面加 roles 字段用
+declare module 'vue-router' {
+  interface RouteMeta {
+    roles?: Role[]
+  }
+}
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -40,12 +49,18 @@ const router = createRouter({
       component: () => import('@/views/PostView.vue'),
       meta: { title: '帖子' },
     },    
-    { 
-      path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/AdminView.vue'),
-      meta: { title: '管理员界面' },
-    },    
+    {
+      path: '/admin/post',
+      name: 'admin-post',
+      component: () => import('@/views/PostAdminView.vue'),
+      meta: { title: '失物招领管理员界面', roles: ['失物招领管理员'] },
+    },
+    {
+      path: '/admin/sys',
+      name: 'admin-sys',
+      component: () => import('@/views/SysAdminView.vue'),
+      meta: { title: '系统管理员界面', roles: ['系统管理员'] },
+    },
     {
       path: '/:pathMatch(.*)*',
       redirect: '/',
@@ -54,13 +69,20 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const isLoggedIn = !!loadLogin()?.token
+  const login = loadLogin()
+  const isLoggedIn = !!login?.token
 
   if (!isLoggedIn && to.name !== 'login') {
     return { name: 'login' }
   }
 
   if (isLoggedIn && to.name === 'login') {
+    return { name: 'home' }
+  }
+
+  // 管理员页面拦截：角色不在允许名单里，提示并送回首页
+  if (to.meta.roles && login && !to.meta.roles.includes(login.role)) {
+    ElMessage.warning('你没有权限访问该页面')
     return { name: 'home' }
   }
 })

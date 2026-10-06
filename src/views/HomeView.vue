@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -13,13 +14,23 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-// 四个功能入口：按钮文字、跳转地址、图标
-const entries = [
-  { path: '/account', label: '管理个人账号', icon: User },
-  { path: '/post/publish', label: '发布帖子', icon: List },
-  { path: '/posts', label: '查看帖子', icon: List },
-  { path: '/admin', label: '管理员操作', icon: Setting },
-]
+// 功能入口：按钮文字、跳转地址、图标。
+// 管理员按钮按角色分流：系统管理员 → /admin/sys，失物招领管理员 → /admin/post，普通用户不显示
+const entries = computed(() => {
+  const base = [
+    { path: '/account', label: '管理个人账号', icon: User },
+    { path: '/post/publish', label: '发布帖子', icon: List },
+    { path: '/posts', label: '查看帖子', icon: List },
+  ]
+
+  if (auth.role === '系统管理员') {
+    base.push({ path: '/admin/sys', label: '系统管理', icon: Setting })
+  } else if (auth.role === '失物招领管理员') {
+    base.push({ path: '/admin/post', label: '帖子审核', icon: Setting })
+  }
+
+  return base
+})
 
 /** 退出登录：先弹确认框，确认后清空登录状态并回登录页 */
 async function handleLogout() {

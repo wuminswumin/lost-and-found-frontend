@@ -7,7 +7,7 @@ export const useAuthStore = defineStore('auth', {
     token: loadLogin()?.token ?? '',
     username: loadLogin()?.user ?? '',
     userId: null as number | null,
-    role: '',
+    role: loadLogin()?.role ?? '',
     expiredAt: '',
   }),
 
