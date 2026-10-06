@@ -6,6 +6,7 @@ import {
   Setting,
   SwitchButton,
   User,
+  Document,
 } from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
@@ -13,11 +14,12 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-// 四个功能入口：按钮文字、跳转地址、图标
+// 5个功能入口：按钮文字、跳转地址、图标
 const entries = [
   { path: '/account', label: '管理个人账号', icon: User },
   { path: '/post/publish', label: '发布帖子', icon: List },
   { path: '/posts', label: '查看帖子', icon: List },
+  { path: '/my/claims', label: '我的认领申请', icon: Document },
   { path: '/admin', label: '管理员操作', icon: Setting },
 ]
 
