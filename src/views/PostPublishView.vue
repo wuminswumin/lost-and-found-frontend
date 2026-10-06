@@ -3,8 +3,18 @@
     <el-card class="post-card">
       <template #header>
         <div class="card-header">
-          <h2>发布帖子</h2>
-          <span>填写失物或招领信息</span>
+          <el-button
+            link
+            @click="handleBack"
+          >
+            ← 返回
+          </el-button>
+
+          <h2>{{ isEditMode ? '编辑帖子' : '发布帖子' }}</h2>
+
+          <span>
+            {{ isEditMode ? '修改信息后重新提交审核' : '填写失物或招领信息' }}
+          </span>
         </div>
       </template>
 
@@ -14,12 +24,14 @@
         :rules="rules"
         label-width="100px"
         class="post-form"
+        @input="formChanged = true"
       >
         <el-form-item label="帖子类型" prop="post_type">
           <el-select
             v-model="form.post_type"
             placeholder="请选择帖子类型"
             style="width: 100%"
+            :disabled="isEditMode"
           >
             <el-option
               label="寻物"
@@ -62,6 +74,7 @@
             format="YYYY-MM-DD HH:mm"
             value-format="YYYY-MM-DD HH:mm:ss"
             style="width: 100%"
+            @change="formChanged = true"
           />
         </el-form-item>
 
@@ -88,10 +101,15 @@
         <el-form-item label="物品照片">
           <el-upload
             :http-request="uploadImage"
+            list-type="picture-card"
             :show-file-list="true"
             :limit="1"
             accept=".jpg,.jpeg,.png"
             :on-exceed="handleExceed"
+            :file-list="uploadFileList"
+            :on-preview="handlePicturePreview"
+            :on-remove="handleImageRemove"
+            @success="formChanged = true"
           >
             <el-button type="primary">选择图片</el-button>
 
@@ -109,7 +127,7 @@
             :loading="submitting"
             @click="submitForm"
           >
-            发布帖子
+            {{ isEditMode ? '重新提交' : '发布帖子' }}
           </el-button>
 
           <el-button @click="resetForm">
@@ -117,22 +135,38 @@
           </el-button>
         </el-form-item>
       </el-form>
+      <ElImageViewer
+        v-if="previewVisible"
+        :url-list="[previewImageUrl]"
+        :initial-index="0"
+        :zoom-rate="1.2"
+        :min-scale="0.2"
+        :max-scale="5"
+        :hide-on-click-modal="true"
+        @close="previewVisible = false"
+      />
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ElMessage,
+  ElMessageBox,
+  ElImageViewer,
   type FormInstance,
   type FormRules,
   type UploadProps,
   type UploadRequestOptions,
 } from 'element-plus'
 
-import { createPost } from '@/api/post'
+import {
+  createPost,
+  getPostDetails,
+  updateMyPost,
+} from '@/api/post'
 import { request } from '@/api/http'
 
 interface PostForm {
@@ -147,6 +181,14 @@ interface PostForm {
 
 const formRef = ref<FormInstance>()
 const router = useRouter()
+const route = useRoute()
+
+const postId = computed(() => {
+  const value = Number(route.query.post_id)
+  return value > 0 ? value : null
+})
+
+const isEditMode = computed(() => postId.value !== null)
 
 const form = reactive<PostForm>({
   post_type: '寻物',
@@ -158,7 +200,101 @@ const form = reactive<PostForm>({
   image_url: '',
 })
 
+const uploadFileList = computed(() => {
+  if (!form.image_url) {
+    return []
+  }
+
+  return [
+    {
+      name: '物品图片',
+      url: form.image_url,
+    },
+  ]
+})
+
+const previewImageUrl = ref('')
+const previewVisible = ref(false)
+
+const handlePicturePreview = (file: any) => {
+  previewImageUrl.value = file.url
+  previewVisible.value = true
+}
+
 const submitting = ref(false)
+const formChanged = ref(false)
+const initialForm = ref<PostForm | null>(null)
+
+const handleBack = async () => {
+  const hasChanges =
+    initialForm.value &&
+    JSON.stringify(form) !== JSON.stringify(initialForm.value)
+
+  if (!hasChanges) {
+    router.push('/posts')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '返回后当前填写的内容将不会保存，确定要返回吗？',
+      '确认返回',
+      {
+        confirmButtonText: '确定返回',
+        cancelButtonText: '继续编辑',
+        type: 'warning',
+      },
+    )
+
+    router.push('/posts')
+  } catch {
+    // 用户点击取消，不做任何操作
+  }
+}
+
+const loadPostForEdit = async () => {
+  if (!postId.value) {
+    return
+  }
+
+  try {
+    const post = await getPostDetails(postId.value)
+
+    form.post_type = post.post_type
+    form.title = post.title
+    form.event_location = post.event_location
+    form.event_time = post.event_time
+    form.contact = post.contact
+    form.description = post.description
+    form.image_url = post.image_url
+
+    initialForm.value = {
+      post_type: post.post_type,
+      title: post.title,
+      event_location: post.event_location,
+      event_time: post.event_time,
+      contact: post.contact,
+      description: post.description,
+      image_url: post.image_url,
+    }
+
+    formChanged.value = false
+  } catch (error) {
+    console.error('获取帖子信息失败:', error)
+    ElMessage.error('获取帖子信息失败')
+    router.back()
+  }
+}
+
+onMounted(() => {
+  if (isEditMode.value) {
+    loadPostForEdit()
+  } else {
+    initialForm.value = {
+      ...form,
+    }
+  }
+})
 
 const rules: FormRules<PostForm> = {
   post_type: [
@@ -269,6 +405,11 @@ const handleExceed: UploadProps['onExceed'] = () => {
   ElMessage.warning('最多只能上传一张图片')
 }
 
+const handleImageRemove = () => {
+  form.image_url = ''
+  formChanged.value = true
+}
+
 const submitForm = async () => {
   if (!formRef.value) {
     return
@@ -279,27 +420,48 @@ const submitForm = async () => {
 
     submitting.value = true
 
-    await createPost({
-      post_type: form.post_type,
-      title: form.title,
-      event_location: form.event_location,
-      event_time: form.event_time,
-      contact: form.contact,
-      description: form.description,
-      image_url: form.image_url,
-    })
+    if (isEditMode.value && postId.value) {
+      await updateMyPost(postId.value, {
+        title: form.title,
+        event_location: form.event_location,
+        event_time: form.event_time,
+        contact: form.contact,
+        description: form.description,
+        image_url: form.image_url,
+      })
 
-    ElMessage.success('帖子发布成功，等待管理员审核')
+      ElMessage.success('帖子修改成功，已重新提交审核')
+    } else {
+      await createPost({
+        post_type: form.post_type,
+        title: form.title,
+        event_location: form.event_location,
+        event_time: form.event_time,
+        contact: form.contact,
+        description: form.description,
+        image_url: form.image_url,
+      })
+
+      ElMessage.success('帖子发布成功，等待管理员审核')
+    }
 
     router.push('/posts')
   } catch (error) {
-    console.error('发布帖子失败：', error)
+    console.error(
+      isEditMode.value ? '重新提交帖子失败：' : '发布帖子失败：',
+      error,
+    )
   } finally {
     submitting.value = false
   }
 }
 
 const resetForm = () => {
+  if (isEditMode.value) {
+    loadPostForEdit()
+    return
+  }
+
   formRef.value?.resetFields()
   form.post_type = '寻物'
   form.image_url = ''
@@ -341,5 +503,6 @@ const resetForm = () => {
   font-size: 13px;
   margin-top: 5px;
 }
-</style>
 
+
+</style>

@@ -97,6 +97,15 @@ function viewPost(post: Post) {
   router.push(`/post?post_id=${post.post_id}`)
 }
 
+function editPost(post: Post) {
+  router.push({
+    path: '/post/publish',
+    query: {
+      post_id: String(post.post_id),
+    },
+  })
+}
+
 async function handleDelete(post: Post) {
   try {
     await ElMessageBox.confirm(
@@ -301,6 +310,17 @@ onMounted(() => {
               @click="viewPost(post)"
             >
               查看详情
+            </el-button>
+            
+            <el-button
+              v-if="
+                postScope === '我的帖子' &&
+                (post.status === '待审核' || post.status === '已驳回')
+              "
+              size="small"
+              @click="editPost(post)"
+            >
+              编辑
             </el-button>
 
             <el-button

@@ -67,3 +67,21 @@ export function getPostDetails(post_id: number) {
     url: `/api/posts/${post_id}`,
   })
 }
+
+// 编辑并重新提交自己的帖子
+export interface UpdatePostPayload {
+  title: string
+  event_location: string
+  event_time: string
+  contact: string
+  description: string
+  image_url: string
+}
+
+export function updateMyPost(post_id: number, payload: UpdatePostPayload) {
+  return request<null>({
+    method: 'PUT',
+    url: `/api/my/posts/${post_id}`,
+    data: payload,
+  })
+}
