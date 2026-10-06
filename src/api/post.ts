@@ -15,7 +15,7 @@ export function getAllPosts(params?: PostListParams) {
     page: number
   }>({
     method: 'GET',
-    url: '/api/all-posts',
+    url: '/api/posts',
     params,
   })
 }
@@ -28,7 +28,7 @@ export function getMyPosts(params?: PostListParams) {
     page: number
   }>({
     method: 'GET',
-    url: '/api/my-posts',
+    url: '/api/my/posts',
     params,
   })
 }
@@ -47,7 +47,7 @@ export interface CreatePostPayload {
 export function createPost(payload: CreatePostPayload) {
   return request<Post>({
     method: 'POST',
-    url: '/api/post',
+    url: '/api/posts',
     data: payload,
   })
 }
@@ -56,8 +56,7 @@ export function createPost(payload: CreatePostPayload) {
 export function deleteMyPost(post_id: number) {
   return request<null>({
     method: 'DELETE',
-    url: '/api/delete-my-post',
-    data: { post_id },
+    url: `/api/my/posts/${post_id}`,
   })
 }
 
@@ -65,7 +64,24 @@ export function deleteMyPost(post_id: number) {
 export function getPostDetails(post_id: number) {
   return request<Post>({
     method: 'GET',
-    url: '/api/post-details',
-    data: JSON.stringify({ post_id }),
+    url: `/api/posts/${post_id}`,
+  })
+}
+
+// 编辑并重新提交自己的帖子
+export interface UpdatePostPayload {
+  title: string
+  event_location: string
+  event_time: string
+  contact: string
+  description: string
+  image_url: string
+}
+
+export function updateMyPost(post_id: number, payload: UpdatePostPayload) {
+  return request<null>({
+    method: 'PUT',
+    url: `/api/my/posts/${post_id}`,
+    data: payload,
   })
 }

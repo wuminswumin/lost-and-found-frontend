@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getAllPosts, getMyPosts } from '@/api/post'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  getAllPosts,
+  getMyPosts,
+  deleteMyPost,
+} from '@/api/post'
 import type { Post } from '@/types'
 
 const posts = ref<Post[]>([])
@@ -91,6 +95,42 @@ function viewPost(post: Post) {
   )
 
   router.push(`/post?post_id=${post.post_id}`)
+}
+
+function editPost(post: Post) {
+  router.push({
+    path: '/post/publish',
+    query: {
+      post_id: String(post.post_id),
+    },
+  })
+}
+
+async function handleDelete(post: Post) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除帖子“${post.title}”吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+
+    await deleteMyPost(post.post_id)
+
+    ElMessage.success('帖子删除成功')
+
+    await loadPosts()
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') {
+      return
+    }
+
+    console.error('删除帖子失败:', error)
+    ElMessage.error('帖子删除失败')
+  }
 }
 
 const filteredPosts = () => {
@@ -237,6 +277,7 @@ onMounted(() => {
           </div>
 
           <el-tag
+            v-if="postScope === '我的帖子'"
             :type="post.status === '已通过' ? 'success' : 'info'"
           >
             {{ post.status }}
@@ -263,12 +304,35 @@ onMounted(() => {
             发布时间：{{ post.created_at }}
           </span>
 
-          <el-button
-            size="small"
-            @click="viewPost(post)"
-          >
-            查看详情
-          </el-button>
+          <div class="post-actions">
+            <el-button
+              size="small"
+              @click="viewPost(post)"
+            >
+              查看详情
+            </el-button>
+            
+            <el-button
+              v-if="
+                postScope === '我的帖子' &&
+                (post.status === '待审核' || post.status === '已驳回')
+              "
+              size="small"
+              @click="editPost(post)"
+            >
+              编辑
+            </el-button>
+
+            <el-button
+              v-if="postScope === '我的帖子'"
+              size="small"
+              type="danger"
+              plain
+              @click="handleDelete(post)"
+            >
+              删除
+            </el-button>
+          </div>
         </div>
       </el-card>
     </div>
@@ -368,10 +432,14 @@ onMounted(() => {
   font-size: 13px;
 }
 
+.post-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .pagination {
   display: flex;
   justify-content: center;
   margin-top: 24px;
 }
 </style>
-

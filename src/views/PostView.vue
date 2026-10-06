@@ -1,8 +1,21 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getPostDetails } from '@/api/post'
+import { getUserProfile } from '@/api/account'
+import { request } from '@/api/http'
 import type { Post } from '@/types'
+
+interface MyClaim {
+  claim_id: number
+  post_id: number
+  post_title: string
+  post_type: '寻物' | '招领'
+  reason: string
+  status: string
+  created_at: string
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -10,7 +23,62 @@ const router = useRouter()
 const post = ref<Post | null>(null)
 const loading = ref(false)
 
-function loadPostDetails() {
+const currentUserId = ref<number | null>(null)
+
+const claimReason = ref('')
+const claiming = ref(false)
+const claimSubmitted = ref(false)
+
+const claimDraftKey = computed(() => {
+  const postId = route.query.post_id
+  return postId ? `claim_draft_${postId}` : ''
+})
+
+const canClaim = computed(() => {
+  if (!post.value || currentUserId.value === null) {
+    return false
+  }
+
+  return (
+    post.value.post_type === '招领' &&
+    post.value.is_resolve === '未解决' &&
+    post.value.user_id !== currentUserId.value &&
+    !claimSubmitted.value
+  )
+})
+
+async function loadMyClaim(postId: number) {
+  try {
+    const result = await request<{
+      list: MyClaim[]
+    }>({
+      method: 'GET',
+      url: '/api/my/claims',
+    })
+
+    const currentClaim = result.list.find(
+      (claim) =>
+        claim.post_id === postId &&
+        claim.status === '待处理',
+    )
+
+    if (currentClaim) {
+      claimSubmitted.value = true
+      claimReason.value = currentClaim.reason
+    }
+    else {
+      const draft = sessionStorage.getItem(claimDraftKey.value)
+
+      if (draft) {
+        claimReason.value = draft
+      }
+    }
+  } catch (error) {
+    console.error('获取我的认领申请失败:', error)
+  }
+}
+
+async function loadPostDetails() {
   const postId = Number(route.query.post_id)
 
   if (!postId) {
@@ -19,17 +87,89 @@ function loadPostDetails() {
     return
   }
 
-  const savedPost = sessionStorage.getItem(`post_${postId}`)
+  loading.value = true
 
-  if (!savedPost) {
-    ElMessage.error('帖子信息不存在')
+  try {
+    const [postData, userData] = await Promise.all([
+      getPostDetails(postId),
+      getUserProfile(),
+    ])
+
+    post.value = postData
+    currentUserId.value = userData.user_id
+
+    await loadMyClaim(postId)
+  } catch (error) {
+    console.error('获取帖子详情失败:', error)
+    ElMessage.error('获取帖子详情失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function saveClaimDraft() {
+  if (!claimDraftKey.value || claimSubmitted.value) {
+    return
+  }
+
+  sessionStorage.setItem(
+    claimDraftKey.value,
+    claimReason.value,
+  )
+}
+
+async function handleClaim() {
+  if (!post.value || !canClaim.value) {
+    return
+  }
+
+  const reason = claimReason.value.trim()
+
+  if (!reason) {
+    ElMessage.warning('请填写认领理由')
+    return
+  }
+
+  if (reason.length > 255) {
+    ElMessage.warning('认领理由不能超过255个字符')
     return
   }
 
   try {
-    post.value = JSON.parse(savedPost) as Post
+    await ElMessageBox.confirm(
+      '提交后将生成一条待处理的认领申请，确定要提交吗？',
+      '确认提交认领申请',
+      {
+        confirmButtonText: '确定提交',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
   } catch {
-    ElMessage.error('帖子信息读取失败')
+    // 用户点击取消，不提交，同时保留输入的理由
+    return
+  }
+
+  claiming.value = true
+
+  try {
+    await request({
+      method: 'POST',
+      url: `/api/posts/${post.value.post_id}/claims`,
+      data: {
+        reason,
+      },
+    })
+
+    claimSubmitted.value = true
+    claimReason.value = reason
+    sessionStorage.removeItem(claimDraftKey.value)
+    ElMessage.success('认领申请提交成功')
+  } catch (error) {
+    console.error('提交认领申请失败:', error)
+    ElMessage.error('认领申请提交失败')
+  } finally {
+    claiming.value = false
   }
 }
 
@@ -112,6 +252,45 @@ onMounted(() => {
           />
         </div>
       </div>
+
+      <el-divider />
+
+      <div
+        v-if="post.post_type === '招领' && post.is_resolve === '未解决'"
+        class="claim-section"
+      >
+        <h3>认领申请</h3>
+
+        <el-input
+          v-model="claimReason"
+          @input="saveClaimDraft"
+          type="textarea"
+          :rows="4"
+          maxlength="255"
+          show-word-limit
+          placeholder="请输入认领理由，例如物品特征、丢失时间、能够证明物品属于自己的信息等"
+          :disabled="claimSubmitted"
+        />
+
+        <div class="claim-actions">
+          <el-button
+            v-if="!claimSubmitted"
+            type="primary"
+            :loading="claiming"
+            @click="handleClaim"
+          >
+            提交认领申请
+          </el-button>
+
+          <el-tag
+            v-else
+            type="success"
+            size="large"
+          >
+            已提交认领申请，等待处理
+          </el-tag>
+        </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -169,5 +348,17 @@ onMounted(() => {
   width: 300px;
   max-height: 300px;
   border-radius: 8px;
+}
+
+.claim-section {
+  margin-top: 24px;
+}
+
+.claim-section h3 {
+  margin: 0 0 16px;
+}
+
+.claim-actions {
+  margin-top: 16px;
 }
 </style>

@@ -49,6 +49,12 @@ const router = createRouter({
       component: () => import('@/views/AnnouncementView.vue'),
       meta: { title: '公告' },
     },
+    {
+      path: '/my/claims',
+      name: 'my-claims',
+      component: () => import('@/views/MyClaimsView.vue'),
+      meta: { title: '我的认领申请' },
+    },
     { 
       path: '/post',
       name: 'post',

@@ -8,6 +8,7 @@ import {
   Setting,
   SwitchButton,
   User,
+  Document,
 } from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
@@ -23,6 +24,7 @@ const entries = computed(() => {
     { path: '/post/publish', label: '发布帖子', icon: List },
     { path: '/posts', label: '查看帖子', icon: List },
     { path: '/announcements', label: '查看公告', icon: Bell },
+    { path: '/my/claims', label: '我的认领申请', icon: Document },
   ]
 
   if (auth.role === '系统管理员') {
