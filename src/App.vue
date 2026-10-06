@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
-
-const route = useRoute()
 </script>
 
 <template>
   <div class="app">
     <header class="app-header">
       <h1>校园失物招领系统</h1>
-      <NavBar v-if="route.name !== 'login'" />
+      <NavBar />
     </header>
 
     <main class="app-main">

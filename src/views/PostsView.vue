@@ -2,6 +2,8 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { loadLogin } from '@/utils/auth-storage'
+import { getUserProfile } from '@/api/account'
 import {
   getAllPosts,
   getMyPosts,
@@ -22,6 +24,7 @@ const currentPage = ref(1)
 const pageSize = 15
 const total = ref(0)
 const router = useRouter()
+const currentUserId = ref<number | null>(null)
 
 function saveListState() {
   sessionStorage.setItem(
@@ -82,6 +85,26 @@ function handlePageChange(page: number) {
 }
 
 function handleFilterChange() {
+  currentPage.value = 1
+  loadPosts()
+}
+
+function handlePublishClick() {
+  if (!loadLogin()?.token) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  router.push('/post/publish')
+}
+
+function handleScopeChange(value: '全部帖子' | '我的帖子') {
+  if (value === '我的帖子' && !loadLogin()?.token) {
+    postScope.value = '全部帖子'
+    ElMessage.warning('请先登录')
+    return
+  }
+
   currentPage.value = 1
   loadPosts()
 }
@@ -157,7 +180,16 @@ watch(
   },
 )
 
-onMounted(() => {
+onMounted(async () => {
+  if (loadLogin()?.token) {
+    try {
+      const userData = await getUserProfile()
+      currentUserId.value = userData.user_id
+    } catch (error) {
+      console.error('获取当前用户信息失败:', error)
+    }
+  }
+
   const savedState = sessionStorage.getItem('posts_list_state')
 
   if (savedState) {
@@ -188,7 +220,7 @@ onMounted(() => {
 
       <el-button
         type="primary"
-        @click="$router.push('/post/publish')"
+        @click="handlePublishClick"
       >
         发布帖子
       </el-button>
@@ -199,7 +231,7 @@ onMounted(() => {
         <el-select
           v-model="postScope"
           placeholder="帖子范围"
-          @change="handleFilterChange"
+          @change="handleScopeChange"
         >
           <el-option
             label="全部帖子"
@@ -274,6 +306,13 @@ onMounted(() => {
             >
               {{ post.post_type }}
             </el-tag>
+
+            <el-tag
+              v-if="currentUserId !== null && post.user_id === currentUserId"
+              type="primary"
+            >
+              我的帖子
+            </el-tag>
           </div>
 
           <el-tag
@@ -311,7 +350,7 @@ onMounted(() => {
             >
               查看详情
             </el-button>
-            
+
             <el-button
               v-if="
                 postScope === '我的帖子' &&

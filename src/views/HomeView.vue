@@ -16,11 +16,8 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-// 功能入口：按钮文字、跳转地址、图标。
-// 管理员按钮按角色分流：系统管理员 → /admin/sys，失物招领管理员 → /admin/post，普通用户不显示
 const entries = computed(() => {
-  const base = [
-    { path: '/account', label: '管理个人账号', icon: User },
+  const commonEntries = [
     { path: '/post/publish', label: '发布帖子', icon: List },
     { path: '/posts', label: '查看帖子', icon: List },
     { path: '/announcements', label: '查看公告', icon: Bell },
@@ -28,13 +25,55 @@ const entries = computed(() => {
   ]
 
   if (auth.role === '系统管理员') {
-    base.push({ path: '/admin/sys', label: '系统管理', icon: Setting })
+    commonEntries.push({
+      path: '/admin/sys',
+      label: '系统管理',
+      icon: Setting,
+    })
   } else if (auth.role === '失物招领管理员') {
-    base.push({ path: '/admin/post', label: '帖子审核', icon: Setting })
+    commonEntries.push({
+      path: '/admin/post',
+      label: '帖子审核',
+      icon: Setting,
+    })
   }
 
-  return base
+  if (auth.token) {
+    return [
+      { path: '/account', label: '管理个人账号', icon: User },
+      ...commonEntries,
+    ]
+  }
+
+  return [
+    { path: '/login', label: '登录/注册', icon: User },
+    ...commonEntries,
+  ]
 })
+
+function handleEntryClick(path: string) {
+  if (path === '/posts' || path === '/login' || path === '/announcements') {
+    router.push(path)
+    return
+  }
+
+  if (!auth.token) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  if (path === '/post/publish') {
+    router.push({
+      path: '/post/publish',
+      query: {
+        from: 'home',
+      },
+    })
+    return
+  }
+
+  router.push(path)
+}
 
 /** 退出登录：先弹确认框，确认后清空登录状态并回登录页 */
 async function handleLogout() {
@@ -48,15 +87,18 @@ async function handleLogout() {
   if (!confirmed) return
 
   auth.logout()
+  window.dispatchEvent(new CustomEvent('auth-changed'))
   ElMessage.success('已退出登录')
-  router.push('/login')
+  router.push('/')
 }
 </script>
 
 <template>
   <div class="home-page">
     <el-card class="menu-card">
-      <h2 class="menu-title">欢迎回来，{{ auth.username }}！</h2>
+      <h2 class="menu-title">
+        {{ auth.token ? `欢迎回来，${auth.username}！` : '游客，你好！' }}
+      </h2>
       <p class="menu-subtitle">请选择要进行的操作</p>
 
       <div class="menu-grid">
@@ -67,12 +109,13 @@ async function handleLogout() {
           size="large"
           type="primary"
           :icon="item.icon"
-          @click="router.push(item.path)"
+          @click="handleEntryClick(item.path)"
         >
           {{ item.label }}
         </el-button>
 
         <el-button
+          v-if="auth.token"
           class="menu-btn"
           size="large"
           type="danger"

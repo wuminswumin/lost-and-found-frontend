@@ -130,6 +130,13 @@
             {{ isEditMode ? '重新提交' : '发布帖子' }}
           </el-button>
 
+          <el-button
+            v-if="!isEditMode"
+            @click="saveDraft"
+          >
+            保存草稿
+          </el-button>
+
           <el-button @click="resetForm">
             重置
           </el-button>
@@ -150,7 +157,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElMessage,
@@ -168,6 +181,11 @@ import {
   updateMyPost,
 } from '@/api/post'
 import { request } from '@/api/http'
+
+import {
+  setLeaveGuard,
+  clearLeaveGuard,
+} from '@/utils/leave-guard'
 
 interface PostForm {
   post_type: '寻物' | '招领'
@@ -225,31 +243,72 @@ const submitting = ref(false)
 const formChanged = ref(false)
 const initialForm = ref<PostForm | null>(null)
 
-const handleBack = async () => {
+const confirmLeave = async () => {
   const hasChanges =
     initialForm.value &&
     JSON.stringify(form) !== JSON.stringify(initialForm.value)
 
   if (!hasChanges) {
-    router.push('/posts')
-    return
+    return true
   }
 
   try {
     await ElMessageBox.confirm(
-      '返回后当前填写的内容将不会保存，确定要返回吗？',
-      '确认返回',
+      '您正在填写内容，确定要离开吗？',
+      '确认离开',
       {
-        confirmButtonText: '确定返回',
+        confirmButtonText: '确定离开',
         cancelButtonText: '继续编辑',
         type: 'warning',
       },
     )
 
-    router.push('/posts')
+    return true
   } catch {
-    // 用户点击取消，不做任何操作
+    return false
   }
+}
+
+const leaveGuard = async () => {
+  return await confirmLeave()
+}
+
+const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+  const hasChanges =
+    initialForm.value &&
+    JSON.stringify(form) !== JSON.stringify(initialForm.value)
+
+  if (!hasChanges) {
+    return
+  }
+
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  setLeaveGuard(leaveGuard)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  clearLeaveGuard(leaveGuard)
+})
+
+const handleBack = async () => {
+  const canLeave = await confirmLeave()
+
+  if (!canLeave) {
+    return
+  }
+
+  if (route.query.from === 'home') {
+    router.push('/')
+    return
+  }
+
+  router.push('/posts')
 }
 
 const loadPostForEdit = async () => {
@@ -286,13 +345,38 @@ const loadPostForEdit = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (isEditMode.value) {
-    loadPostForEdit()
-  } else {
-    initialForm.value = {
-      ...form,
+    await loadPostForEdit()
+    return
+  }
+
+  const draft = localStorage.getItem('lost-found-post-draft')
+
+  if (draft) {
+    try {
+      const draftForm = JSON.parse(draft) as PostForm
+
+      await ElMessageBox.confirm(
+        '检测到上次保存的草稿，是否恢复？',
+        '恢复草稿',
+        {
+          confirmButtonText: '恢复草稿',
+          cancelButtonText: '暂不恢复',
+          type: 'info',
+        },
+      )
+
+      Object.assign(form, draftForm)
+
+      ElMessage.success('草稿已恢复')
+    } catch {
+      // 用户选择暂不恢复
     }
+  }
+
+  initialForm.value = {
+    ...form,
   }
 })
 
@@ -441,7 +525,7 @@ const submitForm = async () => {
         description: form.description,
         image_url: form.image_url,
       })
-
+      localStorage.removeItem('lost-found-post-draft')
       ElMessage.success('帖子发布成功，等待管理员审核')
     }
 
@@ -454,6 +538,17 @@ const submitForm = async () => {
   } finally {
     submitting.value = false
   }
+}
+
+const saveDraft = () => {
+  localStorage.setItem(
+    'lost-found-post-draft',
+    JSON.stringify({
+      ...form,
+    }),
+  )
+
+  ElMessage.success('草稿已保存到本地')
 }
 
 const resetForm = () => {

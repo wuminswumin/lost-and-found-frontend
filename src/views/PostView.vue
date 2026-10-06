@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPostDetails } from '@/api/post'
 import { getUserProfile } from '@/api/account'
 import { request } from '@/api/http'
+import { loadLogin } from '@/utils/auth-storage'
 import type { Post } from '@/types'
 
 interface MyClaim {
@@ -28,6 +29,8 @@ const currentUserId = ref<number | null>(null)
 const claimReason = ref('')
 const claiming = ref(false)
 const claimSubmitted = ref(false)
+
+const isLoggedIn = computed(() => !!loadLogin()?.token)
 
 const claimDraftKey = computed(() => {
   const postId = route.query.post_id
@@ -90,15 +93,17 @@ async function loadPostDetails() {
   loading.value = true
 
   try {
-    const [postData, userData] = await Promise.all([
-      getPostDetails(postId),
-      getUserProfile(),
-    ])
-
+    // 帖子详情本身允许游客访问
+    const postData = await getPostDetails(postId)
     post.value = postData
-    currentUserId.value = userData.user_id
 
-    await loadMyClaim(postId)
+    // 只有登录用户才需要获取个人信息和认领申请
+    if (isLoggedIn.value) {
+      const userData = await getUserProfile()
+      currentUserId.value = userData.user_id
+
+      await loadMyClaim(postId)
+    }
   } catch (error) {
     console.error('获取帖子详情失败:', error)
     ElMessage.error('获取帖子详情失败')
@@ -191,7 +196,6 @@ onMounted(() => {
 
       <div v-if="post">
         <h2>帖子详情</h2>
-        <p>{{ post.post_type }}</p>
       </div>
     </div>
 
@@ -204,11 +208,20 @@ onMounted(() => {
       <div class="detail-header">
         <h2>{{ post.title }}</h2>
 
-        <el-tag
-          :type="post.post_type === '招领' ? 'success' : 'warning'"
-        >
-          {{ post.post_type }}
-        </el-tag>
+        <div class="post-tags">
+          <el-tag
+            :type="post.post_type === '招领' ? 'success' : 'warning'"
+          >
+            {{ post.post_type }}
+          </el-tag>
+
+          <el-tag
+            v-if="isLoggedIn && post.user_id === currentUserId"
+            type="primary"
+          >
+            我的帖子
+          </el-tag>
+        </div>
       </div>
 
       <el-divider />
@@ -256,39 +269,63 @@ onMounted(() => {
       <el-divider />
 
       <div
-        v-if="post.post_type === '招领' && post.is_resolve === '未解决'"
+        v-if="
+          post.post_type === '招领' &&
+          post.is_resolve === '未解决' &&
+          (!isLoggedIn || post.user_id !== currentUserId)
+        "
         class="claim-section"
       >
         <h3>认领申请</h3>
 
-        <el-input
-          v-model="claimReason"
-          @input="saveClaimDraft"
-          type="textarea"
-          :rows="4"
-          maxlength="255"
-          show-word-limit
-          placeholder="请输入认领理由，例如物品特征、丢失时间、能够证明物品属于自己的信息等"
-          :disabled="claimSubmitted"
-        />
+        <template v-if="isLoggedIn">
+          <el-input
+            v-model="claimReason"
+            @input="saveClaimDraft"
+            type="textarea"
+            :rows="4"
+            maxlength="255"
+            show-word-limit
+            placeholder="请输入认领理由，例如物品特征、丢失时间、能够证明物品属于自己的信息等"
+            :disabled="claimSubmitted"
+          />
 
-        <div class="claim-actions">
-          <el-button
-            v-if="!claimSubmitted"
-            type="primary"
-            :loading="claiming"
-            @click="handleClaim"
-          >
-            提交认领申请
-          </el-button>
+          <div class="claim-actions">
+            <el-button
+              v-if="!claimSubmitted"
+              type="primary"
+              :loading="claiming"
+              @click="handleClaim"
+            >
+              提交认领申请
+            </el-button>
 
-          <el-tag
-            v-else
-            type="success"
-            size="large"
+            <el-tag
+              v-else
+              type="success"
+              size="large"
+            >
+              已提交认领申请，等待处理
+            </el-tag>
+          </div>
+        </template>
+
+        <div v-else class="login-tip">
+          <el-alert
+            title="登录后可以提交认领申请"
+            type="info"
+            show-icon
           >
-            已提交认领申请，等待处理
-          </el-tag>
+            <template #default>
+              <el-button
+                type="primary"
+                link
+                @click="router.push('/login')"
+              >
+                去登录
+              </el-button>
+            </template>
+          </el-alert>
         </div>
       </div>
     </el-card>
@@ -361,4 +398,15 @@ onMounted(() => {
 .claim-actions {
   margin-top: 16px;
 }
+
+.login-tip {
+  margin-top: 12px;
+}
+
+.post-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 </style>
+

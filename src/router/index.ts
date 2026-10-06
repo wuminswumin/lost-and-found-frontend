@@ -29,7 +29,10 @@ const router = createRouter({
       path: '/account',
       name: 'account',
       component: () => import('@/views/AccountView.vue'),
-      meta: { title: '个人账户信息管理' },
+      meta: {
+        title: '个人账户信息管理',
+        requiresAuth: true,
+      },
     },
     {
       path: '/posts',
@@ -41,7 +44,10 @@ const router = createRouter({
       path: '/post/publish',
       name: 'post-publish',
       component: () => import('@/views/PostPublishView.vue'),
-      meta: { title: '发布帖子' },
+      meta: {
+        title: '发布帖子',
+        requiresAuth: true,
+      },
     },
     {
       path: '/announcements',
@@ -53,25 +59,43 @@ const router = createRouter({
       path: '/my/claims',
       name: 'my-claims',
       component: () => import('@/views/MyClaimsView.vue'),
-      meta: { title: '我的认领申请' },
+      meta: {
+        title: '我的认领申请',
+        requiresAuth: true,
+      },
     },
-    { 
+    {
       path: '/post',
       name: 'post',
       component: () => import('@/views/PostView.vue'),
       meta: { title: '帖子' },
-    },    
+    },
     {
       path: '/admin/post',
       name: 'admin-post',
       component: () => import('@/views/PostAdminView.vue'),
-      meta: { title: '失物招领管理员界面', roles: ['失物招领管理员'] },
+      meta: {
+        title: '失物招领管理员界面',
+        roles: ['失物招领管理员'],
+      },
     },
     {
       path: '/admin/sys',
       name: 'admin-sys',
       component: () => import('@/views/SysAdminView.vue'),
-      meta: { title: '系统管理员界面', roles: ['系统管理员'] },
+      meta: {
+        title: '系统管理员界面',
+        roles: ['系统管理员'],
+      },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: {
+        title: '管理员界面',
+        requiresAuth: true,
+      },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -84,7 +108,7 @@ router.beforeEach((to) => {
   const login = loadLogin()
   const isLoggedIn = !!login?.token
 
-  if (!isLoggedIn && to.name !== 'login') {
+  if (to.meta.requiresAuth && !isLoggedIn) {
     return { name: 'login' }
   }
 
@@ -107,3 +131,4 @@ router.afterEach((to) => {
 })
 
 export default router
+
