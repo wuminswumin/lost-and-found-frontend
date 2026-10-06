@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
+  Bell,
   List,
   Setting,
   SwitchButton,
@@ -21,6 +22,7 @@ const entries = computed(() => {
     { path: '/account', label: '管理个人账号', icon: User },
     { path: '/post/publish', label: '发布帖子', icon: List },
     { path: '/posts', label: '查看帖子', icon: List },
+    { path: '/announcements', label: '查看公告', icon: Bell },
   ]
 
   if (auth.role === '系统管理员') {

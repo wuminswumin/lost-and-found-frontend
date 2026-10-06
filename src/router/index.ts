@@ -43,6 +43,12 @@ const router = createRouter({
       component: () => import('@/views/PostPublishView.vue'),
       meta: { title: '发布帖子' },
     },
+    {
+      path: '/announcements',
+      name: 'announcements',
+      component: () => import('@/views/AnnouncementView.vue'),
+      meta: { title: '公告' },
+    },
     { 
       path: '/post',
       name: 'post',
