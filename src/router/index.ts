@@ -76,6 +76,7 @@ const router = createRouter({
       component: () => import('@/views/PostAdminView.vue'),
       meta: {
         title: '失物招领管理员界面',
+        requiresAuth: true,
         roles: ['失物招领管理员'],
       },
     },
@@ -85,16 +86,8 @@ const router = createRouter({
       component: () => import('@/views/SysAdminView.vue'),
       meta: {
         title: '系统管理员界面',
-        roles: ['系统管理员'],
-      },
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/AdminView.vue'),
-      meta: {
-        title: '管理员界面',
         requiresAuth: true,
+        roles: ['系统管理员'],
       },
     },
     {
