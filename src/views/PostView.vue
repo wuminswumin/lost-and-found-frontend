@@ -6,6 +6,8 @@ import { getPostDetails } from '@/api/post'
 import { getUserProfile } from '@/api/account'
 import { request } from '@/api/http'
 import { loadLogin } from '@/utils/auth-storage'
+import { createComment, deleteComment, getComments } from '@/api/comment'
+import type { PostComment } from '@/api/comment'
 import type { Post } from '@/types'
 
 interface MyClaim {
@@ -29,6 +31,16 @@ const currentUserId = ref<number | null>(null)
 const claimReason = ref('')
 const claiming = ref(false)
 const claimSubmitted = ref(false)
+
+// ===== 评论（游客可看，登录才能发）=====
+const comments = ref<PostComment[]>([])
+const commentsLoading = ref(false)
+const commentTotal = ref(0)
+const commentPage = ref(1)
+const commentPageSize = 30 // 后端写死每页 30 条
+const commentInput = ref('')
+const commentSubmitting = ref(false)
+const deletingCommentId = ref<number | null>(null)
 
 const isLoggedIn = computed(() => !!loadLogin()?.token)
 
@@ -79,6 +91,90 @@ async function loadMyClaim(postId: number) {
   } catch (error) {
     console.error('获取我的认领申请失败:', error)
   }
+}
+
+async function loadComments() {
+  const postId = Number(route.query.post_id)
+  if (!postId) return
+
+  commentsLoading.value = true
+  try {
+    const data = await getComments(postId, commentPage.value)
+    comments.value = data.list
+    commentTotal.value = data.total
+  } catch {
+    // 失败提示已由 http.ts 统一弹出
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+async function handleSubmitComment() {
+  const postId = Number(route.query.post_id)
+  const content = commentInput.value.trim()
+
+  if (!content) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+
+  commentSubmitting.value = true
+  try {
+    await createComment(postId, content)
+    ElMessage.success('评论发布成功')
+    commentInput.value = ''
+    // 新评论排在最前，回第一页刷新
+    commentPage.value = 1
+    loadComments()
+  } catch {
+    // 失败提示已由 http.ts 统一弹出（如帖子未过审、被禁言）
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
+async function handleDeleteComment(comment: PostComment) {
+  const postId = Number(route.query.post_id)
+
+  try {
+    await ElMessageBox.confirm('确定删除这条评论吗？删除后无法恢复。', '确认删除', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return // 用户点了取消
+  }
+
+  deletingCommentId.value = comment.comment_id
+  try {
+    await deleteComment(postId, comment.comment_id)
+    ElMessage.success('评论已删除')
+
+    // 当前页删空了就退回上一页
+    if (comments.value.length === 1 && commentPage.value > 1) {
+      commentPage.value -= 1
+    }
+    loadComments()
+  } catch {
+    // 失败提示已由 http.ts 统一弹出（比如"这不是你的评论"）
+  } finally {
+    deletingCommentId.value = null
+  }
+}
+
+function handleCommentPageChange(page: number) {
+  commentPage.value = page
+  loadComments()
+}
+
+/** 判断某条评论是不是自己发的（后端没返回用户名，只能按 user_id 对） */
+function isOwnComment(comment: PostComment) {
+  return isLoggedIn.value && comment.user_id === currentUserId.value
+}
+
+function formatTime(iso: string) {
+  return iso.replace('T', ' ').slice(0, 16)
 }
 
 async function loadPostDetails() {
@@ -184,6 +280,7 @@ function goBack() {
 
 onMounted(() => {
   loadPostDetails()
+  loadComments()
 })
 </script>
 
@@ -348,6 +445,99 @@ onMounted(() => {
           </el-alert>
         </div>
       </div>
+
+      <el-divider />
+
+      <!-- 评论区：游客也能看，发表评论需要登录 -->
+      <div class="comment-section">
+        <h3>评论（{{ commentTotal }}）</h3>
+
+        <div v-if="isLoggedIn" class="comment-editor">
+          <el-input
+            v-model="commentInput"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+            placeholder="友善发言，理性交流"
+          />
+
+          <div class="comment-editor-actions">
+            <el-button
+              type="primary"
+              :loading="commentSubmitting"
+              @click="handleSubmitComment"
+            >
+              发表评论
+            </el-button>
+          </div>
+        </div>
+
+        <div v-else class="login-tip">
+          <el-alert
+            title="登录后可以发表评论"
+            type="info"
+            show-icon
+          >
+            <template #default>
+              <el-button
+                type="primary"
+                link
+                @click="router.push('/login')"
+              >
+                去登录
+              </el-button>
+            </template>
+          </el-alert>
+        </div>
+
+        <div v-loading="commentsLoading" class="comment-list">
+          <el-empty
+            v-if="!commentsLoading && comments.length === 0"
+            description="暂无评论，来抢沙发吧"
+          />
+
+          <div
+            v-for="comment in comments"
+            :key="comment.comment_id"
+            class="comment-item"
+          >
+            <div class="comment-head">
+              <span class="comment-author">
+                {{ isOwnComment(comment) ? '我' : `用户 #${comment.user_id}` }}
+              </span>
+              <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
+            </div>
+
+            <p class="comment-content">
+              {{ comment.content }}
+            </p>
+
+            <div v-if="isOwnComment(comment)" class="comment-actions">
+              <el-button
+                type="danger"
+                plain
+                size="small"
+                :loading="deletingCommentId === comment.comment_id"
+                @click="handleDeleteComment(comment)"
+              >
+                删除
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="commentTotal > commentPageSize" class="pagination">
+          <el-pagination
+            background
+            layout="total, prev, pager, next"
+            :current-page="commentPage"
+            :page-size="commentPageSize"
+            :total="commentTotal"
+            @current-change="handleCommentPageChange"
+          />
+        </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -421,6 +611,68 @@ onMounted(() => {
 
 .login-tip {
   margin-top: 12px;
+}
+
+.comment-section {
+  margin-top: 24px;
+}
+
+.comment-section h3 {
+  margin: 0 0 16px;
+}
+
+.comment-editor-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.comment-list {
+  margin-top: 20px;
+  min-height: 100px;
+}
+
+.comment-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: #409eff;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.comment-content {
+  margin: 8px 0 0;
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.comment-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .post-tags {

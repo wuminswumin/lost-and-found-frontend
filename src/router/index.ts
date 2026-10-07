@@ -65,6 +65,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/my/contacts',
+      name: 'my-contacts',
+      component: () => import('@/views/ContactView.vue'),
+      meta: {
+        title: '我的联系人',
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/post',
       name: 'post',
       component: () => import('@/views/PostView.vue'),

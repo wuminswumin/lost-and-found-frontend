@@ -9,6 +9,7 @@ import {
   SwitchButton,
   User,
   Document,
+  Phone,
 } from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
@@ -22,6 +23,7 @@ const entries = computed(() => {
     { path: '/posts', label: '查看帖子', icon: List },
     { path: '/announcements', label: '查看公告', icon: Bell },
     { path: '/my/claims', label: '我的认领申请', icon: Document },
+    { path: '/my/contacts', label: '我的联系人', icon: Phone },
   ]
 
   if (auth.role === '系统管理员') {
