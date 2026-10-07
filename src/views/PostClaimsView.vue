@@ -19,7 +19,7 @@ const postLoading = ref(false)
 const claims = ref<PostClaim[]>([])
 const loading = ref(false)
 const currentPage = ref(1)
-const pageSize = 15 // 后端写死每页 15 条
+const pageSize = 15 // 后端写死每页 15 
 const total = ref(0)
 
 const postId = Number(route.query.post_id)
