@@ -10,6 +10,8 @@ import {
   deleteAnnouncement,
   getSysStats,
   getSysUsers,
+  muteUser,
+  unmuteUser,
   updateUserRole,
   type SysStats,
   type SysUser,
@@ -108,6 +110,83 @@ async function handleChangeRole(user: SysUser, newRole: Role) {
     loadUsers()
   } catch {
     // 失败提示已由 http.ts 统一弹出
+  }
+}
+
+// ===== 禁言 / 解禁 =====
+const muteDialogVisible = ref(false)
+const muteTarget = ref<SysUser | null>(null)
+// 禁言时长选择：0=永久，预置 1小时/1天/7天，'custom'=自定义秒数
+const muteChoice = ref<number | string>(0)
+const customSeconds = ref<number | undefined>(1)
+const muting = ref(false)
+const unmutingId = ref<number | null>(null)
+
+function openMuteDialog(user: SysUser) {
+  muteTarget.value = user
+  muteChoice.value = 0
+  customSeconds.value = 1
+  muteDialogVisible.value = true
+}
+
+async function handleMute() {
+  const user = muteTarget.value
+  if (!user) return
+
+  // 把选择换算成秒数；自定义要校验是大于 0 的整数
+  let seconds: number
+  if (muteChoice.value === 'custom') {
+    const n = Math.floor(Number(customSeconds.value))
+    if (!Number.isFinite(n) || n < 1) {
+      ElMessage.warning('请输入大于 0 的秒数')
+      return
+    }
+    seconds = n
+  } else {
+    seconds = Number(muteChoice.value)
+  }
+
+  muting.value = true
+  try {
+    await muteUser(user.user_id, seconds)
+    ElMessage.success(
+      seconds === 0
+        ? `已永久禁言「${user.username}」`
+        : `已禁言「${user.username}」${seconds} 秒`,
+    )
+    muteDialogVisible.value = false
+    loadUsers()
+  } catch {
+    // 失败提示已由 http.ts 统一弹出
+  } finally {
+    muting.value = false
+  }
+}
+
+async function handleUnmute(user: SysUser) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要解除「${user.username}」的禁言吗？`,
+      '解禁用户',
+      {
+        confirmButtonText: '确定解禁',
+        cancelButtonText: '再想想',
+        type: 'warning',
+      },
+    )
+  } catch {
+    return // 用户点了取消
+  }
+
+  unmutingId.value = user.user_id
+  try {
+    await unmuteUser(user.user_id)
+    ElMessage.success(`已解除「${user.username}」的禁言`)
+    loadUsers()
+  } catch {
+    // 失败提示已由 http.ts 统一弹出
+  } finally {
+    unmutingId.value = null
   }
 }
 
@@ -291,6 +370,42 @@ onMounted(loadUsers)
                 </el-dropdown>
               </template>
             </el-table-column>
+
+            <!-- 禁言/解禁：自己那行禁用，防止误操作 -->
+            <el-table-column label="禁言管理" width="150" fixed="right">
+              <template #default="{ row }">
+                <el-tooltip
+                  v-if="isSelf(row)"
+                  content="不能对自己操作"
+                  placement="top"
+                >
+                  <span>
+                    <el-button size="small" disabled>禁言</el-button>
+                    <el-button size="small" disabled>解禁</el-button>
+                  </span>
+                </el-tooltip>
+
+                <template v-else>
+                  <el-button
+                    size="small"
+                    type="danger"
+                    plain
+                    @click="openMuteDialog(row)"
+                  >
+                    禁言
+                  </el-button>
+                  <el-button
+                    size="small"
+                    type="warning"
+                    plain
+                    :loading="unmutingId === row.user_id"
+                    @click="handleUnmute(row)"
+                  >
+                    解禁
+                  </el-button>
+                </template>
+              </template>
+            </el-table-column>
           </el-table>
         </el-card>
 
@@ -304,6 +419,49 @@ onMounted(loadUsers)
             @current-change="handleUsersPageChange"
           />
         </div>
+
+        <!-- 禁言弹窗：选时长（0=永久），自定义可填秒数 -->
+        <el-dialog
+          v-model="muteDialogVisible"
+          :title="muteTarget ? `禁言用户「${muteTarget.username}」` : '禁言用户'"
+          width="420px"
+        >
+          <p class="mute-tip">
+            被禁言的用户将无法发布帖子、发表评论和提交认领申请。
+          </p>
+
+          <el-radio-group v-model="muteChoice" class="mute-choices">
+            <el-radio :value="0">
+              永久禁言
+            </el-radio>
+            <el-radio :value="3600">
+              1 小时
+            </el-radio>
+            <el-radio :value="86400">
+              1 天
+            </el-radio>
+            <el-radio :value="604800">
+              7 天
+            </el-radio>
+            <el-radio value="custom">
+              自定义
+            </el-radio>
+          </el-radio-group>
+
+          <div v-if="muteChoice === 'custom'" class="mute-custom">
+            <el-input-number v-model="customSeconds" :min="1" :max="31536000" />
+            <span class="mute-unit">秒（1 年 = 31536000 秒）</span>
+          </div>
+
+          <template #footer>
+            <el-button @click="muteDialogVisible = false">
+              取消
+            </el-button>
+            <el-button type="danger" :loading="muting" @click="handleMute">
+              确定禁言
+            </el-button>
+          </template>
+        </el-dialog>
       </el-tab-pane>
 
       <!-- ===== 页签二：管理公告 ===== -->
@@ -531,5 +689,35 @@ onMounted(loadUsers)
   display: flex;
   justify-content: center;
   margin-top: 24px;
+}
+
+.mute-tip {
+  margin: 0;
+  color: #909399;
+  font-size: 13px;
+}
+
+.mute-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.mute-choices .el-radio {
+  height: 32px;
+}
+
+.mute-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mute-unit {
+  color: #909399;
+  font-size: 12px;
 }
 </style>

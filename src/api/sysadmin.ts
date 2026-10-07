@@ -40,6 +40,25 @@ export function updateUserRole(user_id: number, role: Role) {
   })
 }
 
+/**
+ * 禁言用户：mute_second 传 0 = 永久禁言，>0 = 限时禁言多少秒
+ * 参数走 URL 路径（后端 1692c07 修复后确定），被禁言期间不能发帖/评论/提交认领申请
+ */
+export function muteUser(user_id: number, mute_second: number) {
+  return request<null>({
+    method: 'PATCH',
+    url: `/api/sys/users/${user_id}/mute/${mute_second}`,
+  })
+}
+
+// 解禁用户（参数走 URL 路径）
+export function unmuteUser(user_id: number) {
+  return request<null>({
+    method: 'PATCH',
+    url: `/api/sys/users/${user_id}/unmute`,
+  })
+}
+
 export interface CreateAnnouncementPayload {
   title: string
   content: string
