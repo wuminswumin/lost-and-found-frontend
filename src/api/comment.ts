@@ -4,13 +4,14 @@ import { request } from '@/api/http'
 // 对应后端 GET/POST /api/posts/:post_id/comments 与 DELETE /api/posts/:post_id/comments/:comment_id
 // 查看评论无需登录；发布/删除需登录（只能删自己的）
 
-/** 一条帖子评论（注意：后端暂未返回评论人的用户名，只有 user_id） */
+/** 一条帖子评论（后端 735c6a3 起列表接口返回 username，批量查库无性能问题） */
 export interface PostComment {
   comment_id: number
   post_id: number
   user_id: number
   content: string
   created_at: string
+  username: string
 }
 
 // 查看帖子的评论（公开，分页每页固定 30 条，由后端控制）

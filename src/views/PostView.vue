@@ -503,9 +503,7 @@ onMounted(() => {
             class="comment-item"
           >
             <div class="comment-head">
-              <span class="comment-author">
-                {{ isOwnComment(comment) ? '我' : `用户 #${comment.user_id}` }}
-              </span>
+              <span class="comment-author">{{ comment.username }}</span>
               <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
             </div>
 
