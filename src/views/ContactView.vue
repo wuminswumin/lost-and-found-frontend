@@ -44,8 +44,8 @@ async function handleAdd() {
 
     ElMessage.success('联系人添加成功')
     formRef.value?.resetFields()
-    // 新加的在第一页，回到第一页刷新
-    currentPage.value = 1
+    // 后端列表没有排序，新联系人排在最后，跳到最后一页让用户直接看到
+    currentPage.value = Math.max(1, Math.ceil((total.value + 1) / pageSize))
     loadContacts()
   } catch {
     // 失败提示已由 http.ts 统一弹出
