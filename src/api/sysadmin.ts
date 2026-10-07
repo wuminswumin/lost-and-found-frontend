@@ -10,6 +10,8 @@ export interface SysUser {
   username: string
   phone_num: string
   role: Role
+  /** 是否正在被禁言（限时禁言已过期的，后端会返回 false） */
+  is_muted: boolean
 }
 
 export interface SysUserListParams {

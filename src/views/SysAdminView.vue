@@ -325,7 +325,20 @@ onMounted(loadUsers)
 
           <el-table v-else :data="users" stripe>
             <el-table-column prop="user_id" label="ID" width="70" />
-            <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
+            <el-table-column label="用户名" min-width="140" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span>{{ row.username }}</span>
+                <el-tag
+                  v-if="row.is_muted"
+                  type="danger"
+                  size="small"
+                  effect="dark"
+                  class="muted-tag"
+                >
+                  禁言中
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="phone_num" label="手机号" min-width="130" show-overflow-tooltip />
 
             <el-table-column label="角色" width="150">
@@ -695,6 +708,10 @@ onMounted(loadUsers)
   margin: 0;
   color: #909399;
   font-size: 13px;
+}
+
+.muted-tag {
+  margin-left: 8px;
 }
 
 .mute-choices {
