@@ -71,6 +71,12 @@ const router = createRouter({
       meta: { title: '帖子' },
     },
     {
+      path: '/post/claims',
+      name: 'post-claims',
+      component: () => import('@/views/PostClaimsView.vue'),
+      meta: { title: '收到的认领申请', requiresAuth: true },
+    },
+    {
       path: '/admin/post',
       name: 'admin-post',
       component: () => import('@/views/PostAdminView.vue'),

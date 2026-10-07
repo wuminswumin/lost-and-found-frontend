@@ -221,6 +221,26 @@ onMounted(() => {
           >
             我的帖子
           </el-tag>
+
+          <!-- 作者本人看自己的招领帖时，可以进入收到的认领申请审批页 -->
+          <el-button
+            v-if="
+              isLoggedIn &&
+                post.user_id === currentUserId &&
+                post.post_type === '招领'
+            "
+            size="small"
+            type="primary"
+            plain
+            @click="
+              router.push({
+                path: '/post/claims',
+                query: { post_id: post.post_id },
+              })
+            "
+          >
+            查看认领申请
+          </el-button>
         </div>
       </div>
 
